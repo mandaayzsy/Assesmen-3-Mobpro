@@ -144,14 +144,14 @@ fun JamDialog(
                 OutlinedTextField(
                     value = serialNumber,
                     onValueChange = {
-                        serialNumber = it  // Accepts any string input
+                        serialNumber = it
                     },
                     label = {
                         Text(text = stringResource(id = R.string.serial_number))
                     },
                     maxLines = 1,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,  // Shows numeric keyboard
+                        keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Done
                     ),
                     modifier = Modifier.padding(top = 8.dp)
