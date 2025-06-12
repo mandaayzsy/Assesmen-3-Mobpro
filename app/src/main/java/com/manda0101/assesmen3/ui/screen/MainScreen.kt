@@ -2,10 +2,8 @@ package com.manda0101.assesmen3.ui.screen
 
 import android.content.Context
 import android.content.res.Configuration
-import android.graphics.Bitmap
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -38,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,9 +63,6 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.canhub.cropper.CropImageContract
-import com.canhub.cropper.CropImageContractOptions
-import com.canhub.cropper.CropImageOptions
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -92,100 +89,102 @@ fun MainScreen() {
     val errorMessage by viewModel.errorMessage
 
     var showDialog by remember { mutableStateOf(false) }
-    var showHewanDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var selectedHewanId by remember { mutableStateOf("") }
+    var showJamDialog by remember { mutableStateOf(false) }
+    var showHapusDialog by remember { mutableStateOf(false) }
+    var hapusID by remember { mutableLongStateOf(0L) }
 
-    var bitmap: Bitmap? by remember { mutableStateOf(null) }
-    val launcher = rememberLauncherForActivityResult(CropImageContract()) {
-        bitmap = getCroppedImage(context.contentResolver, it)
-        if (bitmap != null) showHewanDialog = true
-    }
+    Mobpro1Theme {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(
+                                id = R.string.app_name
+                            )
+                        )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = stringResource(id = R.string.app_name))
-                },
-                colors = TopAppBarDefaults.mediumTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-                actions = {
-                    IconButton(onClick = {
-                        if (user.email.isEmpty()) {
-                            CoroutineScope(Dispatchers.IO).launch { signIn(context, dataStore) }
-                        } else {
-                            showDialog = true
+                    },
+                    colors = TopAppBarDefaults.mediumTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                if (user.token.isEmpty()) {
+                                    CoroutineScope(Dispatchers.IO).launch { signIn(viewModel, context, dataStore) }
+                                } else {
+                                    showDialog = true
+                                }
+                            }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_account_circle_24),
+                                contentDescription = stringResource(R.string.profil),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
-                    }) {
+                    }
+                )
+            },
+            floatingActionButton = {
+                if (user.token.isNotEmpty()) {
+                    FloatingActionButton(
+                        onClick = {
+                            showJamDialog = true
+                        }
+                    ) {
                         Icon(
-                            painter = painterResource(R.drawable.baseline_account_circle_24),
-                            contentDescription = stringResource(R.string.profil),
-                            tint = MaterialTheme.colorScheme.primary
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(id = R.string.tambah_jam)
                         )
                     }
                 }
+            }
+        ) { innerPadding ->
+            ScreenContent(viewModel, user.token,
+                {
+                        id ->
+                    hapusID = id
+                    showHapusDialog = true
+                },
+                Modifier.padding(innerPadding)
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                val options = CropImageContractOptions(
-                    null, CropImageOptions(
-                        imageSourceIncludeGallery = false,
-                        imageSourceIncludeCamera = true,
-                        fixAspectRatio = true
-                    )
-                )
-                launcher.launch(options)
-            }) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(id = R.string.tambah_jam)
-                )
-            }
-        }
-    ) { innerPadding ->
-        ScreenContent(
-            viewModel,
-            user.email,
-            Modifier.padding(innerPadding),
-            onDelete = { id ->
-                selectedHewanId = id
-                showDeleteDialog = true
-            })
 
-        if (showDialog) {
-            ProfilDialog(
-                user = user,
-                onDismissRequest = { showDialog = false }) {
-                CoroutineScope(Dispatchers.IO).launch { signOut(context, dataStore) }
-                showDialog = false
-            }
-        }
-        if (showHewanDialog) {
-            HewanDialog(
-                bitmap = bitmap,
-                onDismissRequest = { showHewanDialog = false }) { nama, namaLatin ->
-                viewModel.saveData(user.email, nama, namaLatin, bitmap!!)
-                showHewanDialog = false
-            }
-        }
-
-        if (showDeleteDialog) {
-            DialogHapus(
-                onDismissRequest = { showDeleteDialog = false },
-                onConfirmation = {
-                    viewModel.deleteData(user.email, selectedHewanId)
-                    showDeleteDialog = false
+            if (showDialog) {
+                ProfilDialog(
+                    user = user,
+                    onDismissRequest = { showDialog = false }
+                ) { CoroutineScope(Dispatchers.IO).launch { signOut(context, dataStore) }
+                    showDialog = false
                 }
-            )
-        }
+            }
 
-        if (errorMessage != null) {
-            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-            viewModel.clearMessage()
+            if (showJamDialog) {
+                JamDialog(
+                    onDismissRequest = { showJamDialog = false }
+                ) {
+                        name, rating, bitmap ->
+                    showJamDialog = false
+                    viewModel.saveData(user.token, name, rating, bitmap!!)
+                }
+            }
+
+            if (showHapusDialog) {
+                HapusDialog(
+                    onDismissRequest = { showHapusDialog = false }
+                ) {
+                    viewModel.deleteData(user.token, hapusID)
+                    Toast.makeText(context, context.getString(R.string.gambar), Toast.LENGTH_LONG).show()
+                    showHapusDialog = false
+                }
+            }
+
+            if (errorMessage != null) {
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                viewModel.clearMessage()
+            }
         }
     }
 }
