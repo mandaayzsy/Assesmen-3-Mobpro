@@ -1,6 +1,5 @@
 package com.manda0101.assesmen3.network
 
-import com.manda0101.assesmen3.model.Jam
 import com.manda0101.assesmen3.model.JamStatus
 import com.manda0101.assesmen3.model.OpStatus
 import com.squareup.moshi.Moshi
@@ -18,7 +17,6 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
-import retrofit2.http.Query
 
 private const val BASE_URL = "https://ac92-35-229-205-246.ngrok-free.app/api/"
 
