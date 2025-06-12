@@ -41,7 +41,7 @@ interface JamApiService {
     suspend fun postJam(
         @Header("Authorization") token: String,
         @Part("name") name: RequestBody,
-        @Part("rating") rating: RequestBody,
+        @Part("serialNumber") serialNumber: RequestBody,
         @Part image: MultipartBody.Part
     ): OpStatus
 
@@ -52,7 +52,7 @@ interface JamApiService {
         @Part("_method") method: RequestBody,
         @Path("id_jam") id_jam: Long,
         @Part("name") name: RequestBody,
-        @Part("rating") rating: RequestBody,
+        @Part("serialNumber") serialNumber: RequestBody,
         @Part image: MultipartBody.Part? = null
     ): OpStatus
 

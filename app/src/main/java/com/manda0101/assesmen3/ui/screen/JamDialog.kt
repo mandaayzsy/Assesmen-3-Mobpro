@@ -17,16 +17,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -60,7 +59,7 @@ fun JamDialog(
     val context = LocalContext.current
 
     var name by remember { mutableStateOf("") }
-    var rating by remember { mutableStateOf("") }
+    var serialNumber by remember { mutableStateOf("") }
 
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
     val launcher = rememberLauncherForActivityResult(CropImageContract()) {
@@ -69,7 +68,7 @@ fun JamDialog(
 
     if (jam != null) {
         name = jam.name
-        rating = jam.serialNumber
+        serialNumber = jam.serialNumber
     }
 
     Dialog(
@@ -143,18 +142,16 @@ fun JamDialog(
                     modifier = Modifier.padding(top = 8.dp)
                 )
                 OutlinedTextField(
-                    value = rating,
+                    value = serialNumber,
                     onValueChange = {
-                        rating = it
+                        serialNumber = it  // Accepts any string input
                     },
                     label = {
-                        Text(
-                            text = stringResource(id = R.string.serial_number)
-                        )
+                        Text(text = stringResource(id = R.string.serial_number))
                     },
                     maxLines = 1,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
+                        keyboardType = KeyboardType.Number,  // Shows numeric keyboard
                         imeAction = ImeAction.Done
                     ),
                     modifier = Modifier.padding(top = 8.dp)
@@ -175,9 +172,9 @@ fun JamDialog(
                     }
                     OutlinedButton(
                         onClick = {
-                            onConfirmation(name, rating, bitmap)
+                            onConfirmation(name, serialNumber, bitmap)
                         },
-                        enabled = name.isNotEmpty() && rating.isNotEmpty() && (jam != null || bitmap != null),
+                        enabled = name.isNotEmpty() && serialNumber.isNotEmpty() && (jam != null || bitmap != null),
                         modifier = Modifier.padding(8.dp)
                     ) {
                         Text(
