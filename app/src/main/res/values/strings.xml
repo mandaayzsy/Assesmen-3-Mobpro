@@ -13,7 +13,8 @@
     <string name="simpan">Simpan</string>
     <string name="hapus">Hapus</string>
     <string name="konfirmasi_hapus">Konfirmasi Hapus</string>
-    <string name="pesan_hapus">Apakah Anda yakin ingin menghapus?</string>
+    <string name="pesan_hapus">Data jam telah dihapus</string>
     <string name="foto">Foto</string>
     <string name="input">Masukkan nama jam?</string>
+
 </resources>
