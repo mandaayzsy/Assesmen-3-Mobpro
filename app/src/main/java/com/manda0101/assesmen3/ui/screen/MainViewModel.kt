@@ -5,9 +5,8 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.manda0101.assesmen3.model.Jam
+import com.manda0101.assesmen3.model.JamStatus
 import com.manda0101.assesmen3.network.ApiStatus
-import com.manda0101.assesmen3.network.HewanApi
 import com.manda0101.assesmen3.network.JamApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +17,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 
 class MainViewModel : ViewModel() {
-    var data = mutableStateOf(emptyList<Jam>())
+    var data = mutableStateOf<JamStatus?>(null)
         private set
 
     var status = MutableStateFlow(ApiStatus.LOADING)
@@ -26,6 +25,19 @@ class MainViewModel : ViewModel() {
 
     var errorMessage = mutableStateOf<String?>(null)
         private set
+
+    fun retrieveData(token: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            status.value = ApiStatus.LOADING
+            try {
+                data.value = JamApi.service.getJam(token)
+                status.value = ApiStatus.SUCCESS
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Failure: ${e.message}")
+                status.value = ApiStatus.FAILED
+            }
+        }
+    }
 
     suspend fun register(nama: String, email: String, password: String): String {
         var token = ""
@@ -46,56 +58,71 @@ class MainViewModel : ViewModel() {
         return token
     }
 
-    fun retrieveData(userId: String) {
-        viewModelScope.launch (Dispatchers.IO) {
-            status.value = ApiStatus.LOADING
-            try {
-                data.value = HewanApi.service.getHewan(userId)
-                status.value = ApiStatus.SUCCESS
-            } catch (e: Exception) {
-                Log.e("MainViewModel", "Failure retrieving data: ${e.message}", e)
-                status.value = ApiStatus.FAILED
-                errorMessage.value = "Gagal memuat data: ${e.message}"
-            }
-        }
-    }
 
-    fun saveData(userId: String, nama: String, namaLatin: String, bitmap: Bitmap) {
+    fun saveData(token: String, name: String, rating: String, bitmap: Bitmap) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = HewanApi.service.postHewan(
-                    userId,
-                    nama.toRequestBody("text/plain".toMediaTypeOrNull()),
-                    namaLatin.toRequestBody("text/plain".toMediaTypeOrNull()),
+                val result = JamApi.service.postJam(
+                    token,
+                    name.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    rating.toRequestBody("text/plain".toMediaTypeOrNull()),
                     bitmap.toMultipartBody()
                 )
 
-                if (result.status == "success") {
-                    retrieveData(userId)
-                } else {
+                if (result.success)
+                    retrieveData(token)
+                else
                     throw Exception(result.message)
-                }
             } catch (e: Exception) {
-                Log.e("MainViewModel", "Failure saving data: ${e.message}", e)
-                errorMessage.value = "Gagal menyimpan data: ${e.message}"
+                errorMessage.value = e.message
+                Log.d("MainViewModel", "Failure: ${e.message}")
             }
         }
     }
 
-    fun deleteData(userId: String, id: String) {
+    fun updateData(token: String, id_wikul: Long, name: String, rating: String, bitmap: Bitmap?) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = HewanApi.service.deleteHewan(userId, id)
-                if (result.status == "success")
-                    retrieveData(userId)
+                val imagePart = bitmap?.toMultipartBody()
+                val result = JamApi.service.updateJam(
+                    token,
+                    "PUT".toRequestBody("text/plain".toMediaTypeOrNull()),
+                    id_wikul,
+                    name.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    rating.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    imagePart
+                )
+
+                if (result.success)
+                    retrieveData(token)
                 else
                     throw Exception(result.message)
             } catch (e: Exception) {
+                errorMessage.value = e.message
                 Log.d("MainViewModel", "Failure: ${e.message}")
-                errorMessage.value = "Error: ${e.message}"
             }
         }
     }
+
+    fun deleteData(token: String, id: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = JamApi.service.deleteJam(
+                    token,
+                    id
+                )
+
+                if (result.success)
+                    retrieveData(token)
+                else
+                    throw Exception(result.message)
+            } catch (e: Exception) {
+                errorMessage.value = e.message
+                Log.d("MainViewModel", "Failure: ${e.message}")
+            }
+        }
+    }
+
     private fun Bitmap.toMultipartBody(): MultipartBody.Part {
         val stream = ByteArrayOutputStream()
         compress(Bitmap.CompressFormat.JPEG, 80, stream)
@@ -103,7 +130,8 @@ class MainViewModel : ViewModel() {
         val requestBody = byteArray.toRequestBody(
             "image/jpg".toMediaTypeOrNull(), 0, byteArray.size)
         return MultipartBody.Part.createFormData(
-            "image", "image.jpg", requestBody)
+            "image","image.jpg", requestBody
+        )
     }
 
     fun clearMessage() { errorMessage.value = null }

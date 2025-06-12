@@ -12,11 +12,13 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -145,7 +147,7 @@ fun MainScreen() {
             }) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(id = R.string.tambah_hewan)
+                    contentDescription = stringResource(id = R.string.tambah_jam)
                 )
             }
         }
@@ -194,18 +196,30 @@ fun MainScreen() {
 }
 
 @Composable
-fun ScreenContent(viewModel: MainViewModel, userId: String, modifier: Modifier = Modifier, onDelete: (String) -> Unit) {
+fun ScreenContent(viewModel: MainViewModel, token: String, onHapus: (id: Long) -> Unit, modifier: Modifier = Modifier) {
     val data by viewModel.data
     val status by viewModel.status.collectAsState()
+    var showDetailDialog by remember { mutableStateOf<Jam?>(null) }
 
-    LaunchedEffect(userId) {
-        viewModel.retrieveData(userId)
+    LaunchedEffect(token) {
+        viewModel.retrieveData(token)
+    }
+
+    if (showDetailDialog != null) {
+        JamDialog(
+            jam = showDetailDialog!!,
+            onDismissRequest = { showDetailDialog = null },
+            onConfirmation = { name, rating, bitmap ->
+                viewModel.updateData(token, showDetailDialog!!.id_jam, name, rating, bitmap)
+                showDetailDialog = null
+            }
+        )
     }
 
     when (status) {
         ApiStatus.LOADING -> {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
@@ -214,32 +228,31 @@ fun ScreenContent(viewModel: MainViewModel, userId: String, modifier: Modifier =
 
         ApiStatus.SUCCESS -> {
             LazyVerticalGrid(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(4.dp),
+                modifier = modifier.fillMaxSize().padding(4.dp),
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(data.size) { index ->
-                    val hewan = data[index]
-                    ListItem(
-                        jam = hewan,
-                        onDeleteClick = onDelete,
-                        showDeleteButton = (index >= 2)
-                    )
+                data?.let { it ->
+                    items(it.data) {
+                        ListItem(jam = it, onHapus) {
+                            showDetailDialog = it
+                        }
+                    }
                 }
             }
         }
 
         ApiStatus.FAILED -> {
             Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(text = stringResource(id = R.string.error))
+                Text(
+                    text = stringResource(id = R.string.error),
+                )
                 Button(
-                    onClick = { viewModel.retrieveData(userId) },
+                    onClick = { viewModel.retrieveData(token) },
                     modifier = Modifier.padding(top = 16.dp),
                     contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
                 ) {
@@ -251,35 +264,35 @@ fun ScreenContent(viewModel: MainViewModel, userId: String, modifier: Modifier =
 }
 
 @Composable
-fun ListItem(jam: Jam, onDeleteClick: (String) -> Unit, showDeleteButton: Boolean = false) {
+fun ListItem(jam: Jam, onHapus: (id : Long) -> Unit, onClick: () -> Unit = {}) {
     Box(
-        modifier = Modifier
-            .padding(4.dp)
-            .border(1.dp, Color.Gray),
+        modifier = Modifier.padding(4.dp).border(1.dp, Color.Gray).clickable {
+            if (jam.mine == "1") {
+                onClick()
+            }
+        },
         contentAlignment = Alignment.BottomCenter
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(JamApi.getImageUrl(jam.id_jam))
+                .data(
+                    JamApi.getImageUrl(jam.id_jam)
+                )
                 .crossfade(true)
                 .build(),
             contentDescription = stringResource(R.string.gambar, jam.name),
             contentScale = ContentScale.Crop,
             placeholder = painterResource(id = R.drawable.loading_img),
             error = painterResource(id = R.drawable.baseline_broken_image_24),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp)
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f)
         )
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0f, 0f, 0f, 0.5f))
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+                .background(Color(red = 0f, green = 0f, blue = 0f, alpha = 0.5f))
+                .padding(4.dp)
         ) {
-            Column {
+            Column{
                 Text(
                     text = jam.name,
                     fontWeight = FontWeight.Bold,
@@ -292,13 +305,15 @@ fun ListItem(jam: Jam, onDeleteClick: (String) -> Unit, showDeleteButton: Boolea
                     color = Color.White
                 )
             }
-
-            if (showDeleteButton) {
-                IconButton(onClick = { onDeleteClick(jam.id_jam) }) {
+            if (jam.mine == "1") {
+                IconButton(
+                    onClick = {
+                        onHapus(jam.id_jam)
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(id = R.string.hapus),
-                        tint = Color.White
+                        contentDescription = stringResource(id = R.string.hapus)
                     )
                 }
             }
