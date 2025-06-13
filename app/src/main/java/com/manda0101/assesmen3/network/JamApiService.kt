@@ -77,7 +77,7 @@ object JamApi {
     }
 
     fun getImageUrl(id: Long): String {
-        return "${BASE_URL}jam/image/$id"
+        return "${BASE_URL}jam/image/$id?timestamp=${System.currentTimeMillis()}"
     }
 }
 
