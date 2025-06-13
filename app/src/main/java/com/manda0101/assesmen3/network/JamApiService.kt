@@ -18,7 +18,7 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 
-private const val BASE_URL = "https://ac92-35-229-205-246.ngrok-free.app/api/"
+private const val BASE_URL = "https://jam-api.michael-kaiser.my.id/api/"
 
 
 private val moshi = Moshi.Builder()
